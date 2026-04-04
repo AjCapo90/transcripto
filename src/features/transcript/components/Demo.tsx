@@ -80,7 +80,7 @@ function extractVideoId(url: string): string | null {
 export function Demo() {
   const [inputUrl, setInputUrl] = useState('');
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [batchStatus, setBatchStatus] = useState<DemoStatus>('idle');
+  const [, setBatchStatus] = useState<DemoStatus>('idle');
   const processingRef = useRef(false);
 
   const queueCount = queue.length;
