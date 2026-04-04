@@ -1,0 +1,60 @@
+@use '../../../scss/abstracts' as *;
+
+.features {
+  padding: space(32) 0;
+
+  &__container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 space(6);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    gap: space(6);
+  }
+}
+
+.feature-card {
+  padding: space(8);
+  border-radius: $radius-xl;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  transition:
+    border-color $duration-normal ease,
+    transform $duration-normal $ease-out,
+    box-shadow $duration-normal ease;
+
+  @include on-hover {
+    border-color: var(--color-border-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-md;
+    background: $color-accent-glow;
+    color: $color-accent-light;
+    margin-bottom: space(6);
+  }
+
+  &__title {
+    font-family: $font-heading;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: space(3);
+    letter-spacing: -0.01em;
+  }
+
+  &__text {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+  }
+}

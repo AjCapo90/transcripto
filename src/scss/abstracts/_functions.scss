@@ -1,0 +1,25 @@
+@use 'sass:map';
+@use 'variables' as *;
+
+@function space($multiplier) {
+  @if map.has-key($spacings, $multiplier) {
+    @return map.get($spacings, $multiplier);
+  }
+  @return $spacing-base * $multiplier;
+}
+
+$z-layers: (
+  'modal': 5000,
+  'dropdown': 4000,
+  'header': 3000,
+  'overlay': 2000,
+  'default': 1,
+  'below': -1,
+);
+
+@function z($layer) {
+  @if not map.has-key($z-layers, $layer) {
+    @error 'Unknown z-index layer `#{$layer}`.';
+  }
+  @return map.get($z-layers, $layer);
+}

@@ -1,0 +1,83 @@
+@use '../../../scss/abstracts' as *;
+
+.steps {
+  padding: space(32) 0;
+  background: var(--color-surface-1);
+
+  &__container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 space(6);
+  }
+
+  &__grid {
+    display: flex;
+    align-items: flex-start;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    flex: 1;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+
+  &__connector {
+    flex: 0 0 60px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-border), $color-accent-glow-strong, var(--color-border));
+    margin-top: 3.5rem;
+    transform-origin: left;
+
+    @media (max-width: 768px) {
+      width: 1px;
+      height: 40px;
+      flex: 0 0 40px;
+      background: linear-gradient(180deg, var(--color-border), $color-accent-glow-strong, var(--color-border));
+      transform-origin: top;
+    }
+  }
+}
+
+.step {
+  flex: 1;
+  text-align: center;
+
+  &__number {
+    display: block;
+    font-family: $font-heading;
+    font-size: clamp(3rem, 2rem + 3vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(180deg, $color-accent-light, transparent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
+    margin-bottom: space(6);
+  }
+
+  &__title {
+    font-family: $font-heading;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: space(3);
+  }
+
+  &__text {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+}

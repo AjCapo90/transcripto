@@ -1,0 +1,53 @@
+@use '../../scss/abstracts' as *;
+
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: z('header');
+  padding: space(4) 0;
+  transition: background $duration-normal ease, backdrop-filter $duration-normal ease;
+
+  &--scrolled {
+    background: rgba(8, 9, 13, 0.8);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 space(6);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: space(2);
+    font-family: $font-heading;
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--color-text-primary);
+  }
+
+  &__logo-icon { color: $color-accent; }
+
+  &__links {
+    display: flex;
+    gap: space(8);
+
+    @media (max-width: 768px) { display: none; }
+
+    a {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      transition: color $duration-fast ease;
+
+      @include on-hover { color: var(--color-text-primary); }
+    }
+  }
+}

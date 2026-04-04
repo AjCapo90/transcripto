@@ -1,0 +1,14 @@
+@use '../abstracts' as *;
+
+body {
+  font-family: $font-body;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: $font-heading;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}

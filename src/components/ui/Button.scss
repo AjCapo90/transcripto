@@ -1,0 +1,59 @@
+@use '../../scss/abstracts' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: space(2);
+  font-family: $font-body;
+  font-weight: 500;
+  border-radius: $radius-md;
+  transition: all $duration-fast ease;
+  white-space: nowrap;
+
+  &__icon {
+    display: flex;
+    align-items: center;
+  }
+
+  // Sizes
+  &--sm { padding: space(2) space(4); font-size: 0.875rem; }
+  &--md { padding: space(3) space(6); font-size: 0.9375rem; }
+  &--lg { padding: space(4) space(8); font-size: 1rem; }
+
+  // Variants
+  &--primary {
+    background: $color-accent;
+    color: #fff;
+    box-shadow: var(--shadow-sm), 0 0 20px $color-accent-glow;
+
+    @include on-hover {
+      background: $color-accent-light;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md), var(--shadow-glow);
+    }
+
+    &:active { transform: scale(0.98); }
+  }
+
+  &--outline {
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.03);
+
+    @include on-hover {
+      border-color: var(--color-border-hover);
+      color: var(--color-text-primary);
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &--ghost {
+    color: var(--color-text-secondary);
+
+    @include on-hover {
+      color: var(--color-text-primary);
+    }
+  }
+}

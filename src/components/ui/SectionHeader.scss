@@ -1,0 +1,30 @@
+@use '../../scss/abstracts' as *;
+
+.section-header {
+  &__label {
+    font-family: $font-body;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $color-accent-light;
+    margin-bottom: space(4);
+  }
+
+  &__title {
+    font-family: $font-heading;
+    font-size: clamp(2rem, 1.5rem + 2vw, 3.25rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    margin-bottom: space(6);
+  }
+
+  &__subtitle {
+    font-size: 1.0625rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    margin-bottom: space(12);
+  }
+}
