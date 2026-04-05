@@ -9,6 +9,19 @@ import os
 import re
 from http.server import BaseHTTPRequestHandler
 
+import requests
+import urllib3
+
+# ScraperAPI proxy uses its own TLS — disable SSL verification for proxied requests
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+_original_send = requests.Session.send
+
+def _patched_send(self, *args, **kwargs):
+    kwargs["verify"] = False
+    return _original_send(self, *args, **kwargs)
+
+requests.Session.send = _patched_send
+
 import httpx
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.proxies import GenericProxyConfig
