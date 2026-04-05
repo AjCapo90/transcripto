@@ -1,12 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const INNERTUBE_API = 'https://www.youtube.com/youtubei/v1/player';
-const INNERTUBE_CLIENT = {
-  clientName: 'WEB',
-  clientVersion: '2.20250401.00.00',
-  hl: 'en',
-};
-
 interface CaptionTrack {
   baseUrl: string;
   languageCode: string;
@@ -70,8 +63,19 @@ function parseTimedText(xml: string): TimedTextLine[] {
   return lines;
 }
 
+function extractPlayerResponse(html: string): Record<string, unknown> | null {
+  const pattern = /var ytInitialPlayerResponse\s*=\s*(\{.+?\});/s;
+  const match = html.match(pattern);
+  if (!match) return null;
+
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -90,30 +94,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // 1. Get player data via innertube API
-    const playerRes = await fetch(INNERTUBE_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        videoId,
-        context: { client: INNERTUBE_CLIENT },
-      }),
+    // Fetch the YouTube watch page to extract player data
+    const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+        'Accept-Language': 'en',
+      },
     });
 
-    if (!playerRes.ok) {
-      throw new Error(`Innertube API returned ${playerRes.status}`);
+    if (!watchRes.ok) {
+      throw new Error(`YouTube returned ${watchRes.status}`);
     }
 
-    const playerData = await playerRes.json();
-    const videoDetails = playerData.videoDetails;
+    const html = await watchRes.text();
+    const playerData = extractPlayerResponse(html) as Record<string, unknown> | null;
+
+    if (!playerData) {
+      return res.status(500).json({ detail: 'Could not extract player data from YouTube page' });
+    }
+
+    const videoDetails = playerData.videoDetails as
+      | { title?: string; author?: string; lengthSeconds?: string }
+      | undefined;
 
     if (!videoDetails) {
       return res.status(404).json({ detail: 'Video not found or unavailable' });
     }
 
-    // 2. Find caption tracks
+    // Find caption tracks
+    const captions = playerData.captions as
+      | { playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] } }
+      | undefined;
     const captionTracks: CaptionTrack[] =
-      playerData.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+      captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
 
     if (captionTracks.length === 0) {
       return res.status(404).json({ detail: 'No captions available for this video' });
@@ -124,7 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const selectedTrack = manualTrack ?? captionTracks[0];
     const isGenerated = selectedTrack.kind === 'asr';
 
-    // 3. Fetch caption XML
+    // Fetch caption XML
     const captionRes = await fetch(selectedTrack.baseUrl);
     if (!captionRes.ok) {
       throw new Error(`Failed to fetch captions: ${captionRes.status}`);
@@ -137,7 +151,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ detail: 'Captions are empty' });
     }
 
-    // 4. Build response matching frontend interface
     const durationSeconds = parseInt(videoDetails.lengthSeconds ?? '0', 10);
 
     return res.status(200).json({

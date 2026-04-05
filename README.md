@@ -28,24 +28,20 @@ A modern web app with dark-themed UI, Google OAuth integration, and batch proces
 | Animations | Motion (Framer Motion) |
 | Auth | Google OAuth 2.0 |
 | API | YouTube Data API v3 |
-| Backend | FastAPI (Python) |
-| Hosting | Vercel (frontend) + Render (backend) |
+| Hosting | Vercel (frontend + serverless API) |
 
 ## Architecture
 
 ```
-Browser                          Backend (FastAPI)
-React + TypeScript + SCSS        Python + youtube-transcript-api
-       |                                |
-       |  POST /api/transcript          |
-       |------------------------------->|
-       |                                |--- youtube-transcript-api
-       |  { title, lines[], ... }       |
-       |<-------------------------------|
-       |
-       |  Google OAuth (client-side)
-       |--- YouTube Data API v3
-            (subscriptions, videos)
+Vercel
+├── Frontend (React + TypeScript + SCSS)
+│   ├── Google OAuth (client-side)
+│   └── YouTube Data API v3 (subscriptions, videos)
+│
+└── Serverless Function (api/transcript.ts)
+    ├── POST /api/transcript
+    ├── YouTube InnerTube API (player data + captions)
+    └── { title, lines[], ... }
 ```
 
 ## Design
@@ -63,7 +59,6 @@ React + TypeScript + SCSS        Python + youtube-transcript-api
 ### Prerequisites
 
 - Node.js 18+
-- A running instance of the [backend API](https://github.com/AjCapo90/youtube-transcript)
 
 ### Setup
 
@@ -76,7 +71,6 @@ npm install
 Create a `.env` file:
 
 ```env
-VITE_API_URL=http://localhost:8000
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
@@ -95,19 +89,21 @@ npm run build
 ## Project Structure
 
 ```
-src/
-├── app/                  # App root component
-├── components/
-│   ├── layouts/          # Nav, Footer
-│   └── ui/               # Button, Icons, SectionHeader
-├── features/
-│   └── transcript/       # Hero, Features, Steps, Demo, Subscriptions
-├── hooks/                # useScrollReveal, useScrolled
-├── lib/                  # Google Auth, YouTube API helpers
-├── scss/
-│   ├── abstracts/        # Variables, mixins, functions
-│   └── base/             # Reset, typography
-└── types/                # Type declarations
+├── api/
+│   └── transcript.ts     # Vercel serverless function
+├── src/
+│   ├── app/              # App root component
+│   ├── components/
+│   │   ├── layouts/      # Nav, Footer
+│   │   └── ui/           # Button, Icons, SectionHeader
+│   ├── features/
+│   │   └── transcript/   # Hero, Features, Steps, Demo, Subscriptions
+│   ├── hooks/            # useScrollReveal, useScrolled
+│   ├── lib/              # Google Auth, YouTube API helpers
+│   ├── scss/
+│   │   ├── abstracts/    # Variables, mixins, functions
+│   │   └── base/         # Reset, typography
+│   └── types/            # Type declarations
 ```
 
 ## Author
