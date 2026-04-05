@@ -1,20 +1,20 @@
 """Vercel Python serverless function for YouTube transcript extraction.
 
-Uses ScraperAPI to fetch the YouTube watch page (bypasses cloud IP blocking).
-Caption XML is fetched directly (signed URLs are IP-independent).
+Uses youtube-transcript-api with ScraperAPI proxy to bypass cloud IP blocking.
+Metadata fetched via YouTube oEmbed (no API key needed).
 """
 
 import json
 import os
 import re
-import xml.etree.ElementTree as ET
-from html import unescape
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import quote
 
 import httpx
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import GenericProxyConfig
 
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "")
+SCRAPER_PROXY = f"http://scraperapi:{SCRAPER_API_KEY}@proxy-server.scraperapi.com:8001"
 
 
 def _extract_video_id(url: str) -> str | None:
@@ -34,112 +34,66 @@ def _format_time(seconds: float) -> str:
     return f"{mins}:{secs:02d}"
 
 
-def _extract_player_response(html: str) -> dict | None:
-    marker = "var ytInitialPlayerResponse = "
-    start = html.find(marker)
-    if start == -1:
-        return None
-
-    json_start = start + len(marker)
-    depth = 0
-    end = json_start
-
-    for i in range(json_start, len(html)):
-        if html[i] == "{":
-            depth += 1
-        elif html[i] == "}":
-            depth -= 1
-        if depth == 0:
-            end = i + 1
-            break
-
+def _fetch_metadata(video_id: str) -> dict:
+    url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
     try:
-        return json.loads(html[json_start:end])
+        with httpx.Client(timeout=10) as client:
+            resp = client.get(url)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "title": data.get("title", ""),
+                    "channel": data.get("author_name", ""),
+                }
     except Exception:
-        return None
-
-
-def _parse_caption_xml(xml_text: str) -> list[dict]:
-    lines = []
-    root = ET.fromstring(xml_text)
-
-    for text_el in root.findall("text"):
-        start = float(text_el.get("start", "0"))
-        raw = text_el.text or ""
-        raw = raw.strip()
-        if not raw:
-            continue
-        lines.append({
-            "time": _format_time(start),
-            "text": unescape(raw).replace("\n", " "),
-        })
-
-    return lines
-
-
-def _fetch_watch_page(video_id: str) -> str:
-    """Fetch YouTube watch page via ScraperAPI."""
-    target = quote(f"https://www.youtube.com/watch?v={video_id}&hl=en", safe="")
-    url = f"https://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={target}"
-
-    with httpx.Client(timeout=30) as http:
-        resp = http.get(url)
-        if resp.status_code != 200:
-            raise Exception(f"ScraperAPI returned {resp.status_code}")
-        return resp.text
-
-
-def _fetch_caption_xml(caption_url: str) -> str:
-    """Fetch caption XML directly (signed URLs should work from any IP)."""
-    with httpx.Client(timeout=15) as http:
-        resp = http.get(caption_url)
-        if resp.status_code != 200:
-            raise Exception(f"Caption fetch returned {resp.status_code}")
-        if not resp.text:
-            raise Exception("Caption response is empty")
-        return resp.text
+        pass
+    return {"title": "", "channel": ""}
 
 
 def _get_transcript(video_id: str) -> dict:
-    html = _fetch_watch_page(video_id)
-    player = _extract_player_response(html)
+    # Configure proxy
+    if SCRAPER_API_KEY:
+        proxy = GenericProxyConfig(http_url=SCRAPER_PROXY, https_url=SCRAPER_PROXY)
+        api = YouTubeTranscriptApi(proxy_config=proxy)
+    else:
+        api = YouTubeTranscriptApi()
 
-    if not player:
-        raise Exception("Could not extract player data")
+    # Fetch transcript
+    result = api.fetch(video_id, languages=["en", "it"])
 
-    video_details = player.get("videoDetails", {})
-    if not video_details:
-        raise Exception("Video not found or unavailable")
+    lines = []
+    total_seconds = 0.0
+    for snippet in result.snippets:
+        lines.append({
+            "time": _format_time(snippet.start),
+            "text": snippet.text.replace("\n", " "),
+        })
+        total_seconds = max(total_seconds, snippet.start + snippet.duration)
 
-    caption_tracks = (
-        player.get("captions", {})
-        .get("playerCaptionsTracklistRenderer", {})
-        .get("captionTracks", [])
-    )
-    if not caption_tracks:
-        raise Exception("No captions available for this video")
+    # Detect language info
+    language = "unknown"
+    is_generated = False
+    try:
+        tl = api.list(video_id)
+        for t in tl:
+            language = t.language_code
+            is_generated = t.is_generated
+            break
+    except Exception:
+        pass
 
-    manual = next((t for t in caption_tracks if t.get("kind") != "asr"), None)
-    track = manual or caption_tracks[0]
-    is_generated = track.get("kind") == "asr"
-
-    caption_xml = _fetch_caption_xml(track["baseUrl"])
-    lines = _parse_caption_xml(caption_xml)
-
-    if not lines:
-        raise Exception("Captions are empty")
-
-    duration_seconds = int(video_details.get("lengthSeconds", "0"))
+    # Fetch metadata via oEmbed
+    meta = _fetch_metadata(video_id)
 
     return {
         "video_id": video_id,
-        "title": video_details.get("title", ""),
-        "channel": video_details.get("author", ""),
+        "title": meta["title"],
+        "channel": meta["channel"],
         "thumbnail": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
         "channel_thumbnail": "",
-        "language": track.get("languageCode", "unknown"),
+        "language": language,
         "is_generated": is_generated,
-        "duration": _format_time(duration_seconds),
+        "duration": _format_time(total_seconds),
         "lines": lines,
     }
 
@@ -178,9 +132,9 @@ class handler(BaseHTTPRequestHandler):
             return _json_response(self, 200, result)
         except Exception as e:
             msg = str(e)
-            if "429" in msg:
+            if "IpBlocked" in msg or "RequestBlocked" in msg or "429" in msg:
                 status = 429
-            elif "not found" in msg or "unavailable" in msg or "No captions" in msg:
+            elif "not found" in msg or "No transcript" in msg or "disabled" in msg:
                 status = 404
             else:
                 status = 500
