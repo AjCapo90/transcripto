@@ -1,11 +1,20 @@
-"""Vercel Python serverless function for YouTube transcript extraction."""
+"""Vercel Python serverless function for YouTube transcript extraction.
+
+Uses ScraperAPI to fetch the YouTube watch page (bypasses cloud IP blocking).
+Caption XML is fetched directly (signed URLs are IP-independent).
+"""
 
 import json
+import os
 import re
+import xml.etree.ElementTree as ET
+from html import unescape
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import quote
 
 import httpx
-from youtube_transcript_api import YouTubeTranscriptApi, IpBlocked, RequestBlocked
+
+SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "")
 
 
 def _extract_video_id(url: str) -> str | None:
@@ -25,74 +34,112 @@ def _format_time(seconds: float) -> str:
     return f"{mins}:{secs:02d}"
 
 
-def _fetch_metadata(video_id: str) -> dict:
-    url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
-    try:
-        with httpx.Client(timeout=10) as client:
-            resp = client.get(url)
-            if resp.status_code == 200:
-                data = resp.json()
-                return {
-                    "title": data.get("title", ""),
-                    "channel": data.get("author_name", ""),
-                }
-    except Exception:
-        pass
-    return {"title": "", "channel": ""}
+def _extract_player_response(html: str) -> dict | None:
+    marker = "var ytInitialPlayerResponse = "
+    start = html.find(marker)
+    if start == -1:
+        return None
 
+    json_start = start + len(marker)
+    depth = 0
+    end = json_start
 
-def _fetch_transcript(video_id: str) -> dict:
-    api = YouTubeTranscriptApi()
-    languages = ["en", "it"]
-
-    # Attempt 1: preferred languages
-    try:
-        result = api.fetch(video_id, languages=languages)
-    except (IpBlocked, RequestBlocked):
-        raise
-    except Exception:
-        # Attempt 2: list available and pick best match
-        transcript_list = api.list(video_id)
-        best = None
-        for lc in languages:
-            for t in transcript_list:
-                if t.language_code == lc:
-                    best = t
-                    break
-            if best:
-                break
-        if not best and transcript_list:
-            best = transcript_list[0]
-        if not best:
-            return None
-
-        result = api.fetch(video_id, languages=[best.language_code])
-
-    lines = []
-    total_seconds = 0.0
-    for snippet in result.snippets:
-        lines.append({
-            "time": _format_time(snippet.start),
-            "text": snippet.text.replace("\n", " "),
-        })
-        total_seconds = max(total_seconds, snippet.start + snippet.duration)
-
-    # Detect language info
-    language = "unknown"
-    is_generated = False
-    try:
-        tl = api.list(video_id)
-        for t in tl:
-            language = t.language_code
-            is_generated = t.is_generated
+    for i in range(json_start, len(html)):
+        if html[i] == "{":
+            depth += 1
+        elif html[i] == "}":
+            depth -= 1
+        if depth == 0:
+            end = i + 1
             break
+
+    try:
+        return json.loads(html[json_start:end])
     except Exception:
-        pass
+        return None
+
+
+def _parse_caption_xml(xml_text: str) -> list[dict]:
+    lines = []
+    root = ET.fromstring(xml_text)
+
+    for text_el in root.findall("text"):
+        start = float(text_el.get("start", "0"))
+        raw = text_el.text or ""
+        raw = raw.strip()
+        if not raw:
+            continue
+        lines.append({
+            "time": _format_time(start),
+            "text": unescape(raw).replace("\n", " "),
+        })
+
+    return lines
+
+
+def _fetch_watch_page(video_id: str) -> str:
+    """Fetch YouTube watch page via ScraperAPI."""
+    target = quote(f"https://www.youtube.com/watch?v={video_id}&hl=en", safe="")
+    url = f"https://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={target}"
+
+    with httpx.Client(timeout=30) as http:
+        resp = http.get(url)
+        if resp.status_code != 200:
+            raise Exception(f"ScraperAPI returned {resp.status_code}")
+        return resp.text
+
+
+def _fetch_caption_xml(caption_url: str) -> str:
+    """Fetch caption XML directly (signed URLs should work from any IP)."""
+    with httpx.Client(timeout=15) as http:
+        resp = http.get(caption_url)
+        if resp.status_code != 200:
+            raise Exception(f"Caption fetch returned {resp.status_code}")
+        if not resp.text:
+            raise Exception("Caption response is empty")
+        return resp.text
+
+
+def _get_transcript(video_id: str) -> dict:
+    html = _fetch_watch_page(video_id)
+    player = _extract_player_response(html)
+
+    if not player:
+        raise Exception("Could not extract player data")
+
+    video_details = player.get("videoDetails", {})
+    if not video_details:
+        raise Exception("Video not found or unavailable")
+
+    caption_tracks = (
+        player.get("captions", {})
+        .get("playerCaptionsTracklistRenderer", {})
+        .get("captionTracks", [])
+    )
+    if not caption_tracks:
+        raise Exception("No captions available for this video")
+
+    manual = next((t for t in caption_tracks if t.get("kind") != "asr"), None)
+    track = manual or caption_tracks[0]
+    is_generated = track.get("kind") == "asr"
+
+    caption_xml = _fetch_caption_xml(track["baseUrl"])
+    lines = _parse_caption_xml(caption_xml)
+
+    if not lines:
+        raise Exception("Captions are empty")
+
+    duration_seconds = int(video_details.get("lengthSeconds", "0"))
 
     return {
-        "language": language,
+        "video_id": video_id,
+        "title": video_details.get("title", ""),
+        "channel": video_details.get("author", ""),
+        "thumbnail": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+        "channel_thumbnail": "",
+        "language": track.get("languageCode", "unknown"),
         "is_generated": is_generated,
-        "duration": _format_time(total_seconds),
+        "duration": _format_time(duration_seconds),
         "lines": lines,
     }
 
@@ -126,30 +173,15 @@ class handler(BaseHTTPRequestHandler):
         if not video_id:
             return _json_response(self, 400, {"detail": "Could not extract video ID from URL"})
 
-        # Fetch metadata via oEmbed (never fails, returns defaults)
-        meta = _fetch_metadata(video_id)
-
-        # Fetch transcript
         try:
-            transcript = _fetch_transcript(video_id)
-        except (IpBlocked, RequestBlocked):
-            return _json_response(self, 429, {
-                "detail": "YouTube has rate-limited this server. Try again in a few minutes.",
-            })
+            result = _get_transcript(video_id)
+            return _json_response(self, 200, result)
         except Exception as e:
-            return _json_response(self, 404, {"detail": f"No transcript available: {e}"})
-
-        if not transcript:
-            return _json_response(self, 404, {"detail": "No captions available for this video"})
-
-        return _json_response(self, 200, {
-            "video_id": video_id,
-            "title": meta["title"],
-            "channel": meta["channel"],
-            "thumbnail": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
-            "channel_thumbnail": "",
-            "language": transcript["language"],
-            "is_generated": transcript["is_generated"],
-            "duration": transcript["duration"],
-            "lines": transcript["lines"],
-        })
+            msg = str(e)
+            if "429" in msg:
+                status = 429
+            elif "not found" in msg or "unavailable" in msg or "No captions" in msg:
+                status = 404
+            else:
+                status = 500
+            return _json_response(self, status, {"detail": msg})
