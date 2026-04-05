@@ -25,7 +25,13 @@
 VITE_GOOGLE_CLIENT_ID=885996383441-p11cctpoiocpqutbvf77igjbchiiojri.apps.googleusercontent.com
 ```
 
-> `VITE_API_URL` non è più necessario: il frontend chiama `/api/transcript` come path relativo.
+### Vercel (production)
+```
+VITE_GOOGLE_CLIENT_ID=885996383441-p11cctpoiocpqutbvf77igjbchiiojri.apps.googleusercontent.com
+SCRAPER_API_KEY=<chiave ScraperAPI per proxy residenziale>
+```
+
+> Il frontend chiama `/api/transcript` come path relativo (no `VITE_API_URL`).
 
 ## Google Cloud Console
 - Progetto: "Transcripto"
@@ -61,6 +67,8 @@ Vercel
 ## Limiti noti
 - Google OAuth in test mode: solo utenti aggiunti manualmente
 - Batch max 5 video per evitare rate limiting
+- ScraperAPI free tier: 5.000 richieste/mese (~2 per transcript = ~2.500 transcript)
+- YouTube blocca IP cloud: senza ScraperAPI proxy il backend non funziona
 
 ## Skill applicate
 Questo progetto usa tutte le skill master:

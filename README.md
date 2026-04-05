@@ -21,14 +21,14 @@ A modern web app with dark-themed UI, Google OAuth integration, and batch proces
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | React 19 |
-| Language | TypeScript |
-| Build | Vite 8 |
+| Frontend | React 19, TypeScript, Vite 8 |
 | Styling | SCSS (7-1 architecture, BEM) |
 | Animations | Motion (Framer Motion) |
 | Auth | Google OAuth 2.0 |
 | API | YouTube Data API v3 |
-| Hosting | Vercel (frontend + serverless API) |
+| Backend | Python (Vercel Serverless) |
+| Transcript | youtube-transcript-api + ScraperAPI |
+| Hosting | Vercel |
 
 ## Architecture
 
@@ -38,10 +38,10 @@ Vercel
 │   ├── Google OAuth (client-side)
 │   └── YouTube Data API v3 (subscriptions, videos)
 │
-└── Serverless Function (api/transcript.ts)
+└── Serverless Function (api/transcript.py)
     ├── POST /api/transcript
-    ├── YouTube InnerTube API (player data + captions)
-    └── { title, lines[], ... }
+    ├── youtube-transcript-api via ScraperAPI proxy
+    └── oEmbed for video metadata
 ```
 
 ## Design
@@ -59,6 +59,7 @@ Vercel
 ### Prerequisites
 
 - Node.js 18+
+- Python 3.9+ (for local API development)
 
 ### Setup
 
@@ -72,6 +73,12 @@ Create a `.env` file:
 
 ```env
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
+```
+
+For local API development, you also need a [ScraperAPI](https://www.scraperapi.com) key set in Vercel environment variables:
+
+```
+SCRAPER_API_KEY=your-scraper-api-key
 ```
 
 ### Development
@@ -90,20 +97,22 @@ npm run build
 
 ```
 ├── api/
-│   └── transcript.ts     # Vercel serverless function
+│   └── transcript.py       # Vercel Python serverless function
 ├── src/
-│   ├── app/              # App root component
+│   ├── app/                # App root component
 │   ├── components/
-│   │   ├── layouts/      # Nav, Footer
-│   │   └── ui/           # Button, Icons, SectionHeader
+│   │   ├── layouts/        # Nav, Footer
+│   │   └── ui/             # Button, Icons, SectionHeader
 │   ├── features/
-│   │   └── transcript/   # Hero, Features, Steps, Demo, Subscriptions
-│   ├── hooks/            # useScrollReveal, useScrolled
-│   ├── lib/              # Google Auth, YouTube API helpers
+│   │   └── transcript/     # Hero, Features, Steps, Demo, Subscriptions, TranscriptCard
+│   ├── hooks/              # useScrollReveal, useScrolled
+│   ├── lib/                # Constants, utils, Google Auth, YouTube API
 │   ├── scss/
-│   │   ├── abstracts/    # Variables, mixins, functions
-│   │   └── base/         # Reset, typography
-│   └── types/            # Type declarations
+│   │   ├── abstracts/      # Variables, mixins, functions, animations
+│   │   └── base/           # Reset, typography
+│   └── types/              # Shared type definitions
+├── requirements.txt        # Python dependencies
+└── vercel.json             # Vercel routing config
 ```
 
 ## Author
