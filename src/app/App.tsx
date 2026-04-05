@@ -9,8 +9,7 @@ import { Subscriptions } from '../features/transcript/components/Subscriptions';
 import { initGoogleAuth, requestAccessToken, revokeToken } from '../lib/google-auth';
 import { fetchSubscriptions } from '../lib/youtube-api';
 import type { YouTubeChannel } from '../lib/youtube-api';
-
-const TOKEN_KEY = 'transcripto_access_token';
+import { TOKEN_KEY } from '../lib/constants';
 
 export function App() {
   const [accessToken, setAccessToken] = useState<string | null>(

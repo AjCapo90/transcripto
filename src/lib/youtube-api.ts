@@ -1,4 +1,6 @@
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
+const MAX_SUBSCRIPTIONS_PER_PAGE = 50;
+const DEFAULT_VIDEO_COUNT = 20;
 
 export interface YouTubeChannel {
   id: string;
@@ -15,6 +17,37 @@ export interface YouTubeVideo {
   publishedAt: string;
 }
 
+interface YouTubeApiResponse {
+  items?: YouTubeSubscriptionItem[];
+  nextPageToken?: string;
+}
+
+interface YouTubeSubscriptionItem {
+  snippet: {
+    resourceId: { channelId: string };
+    title: string;
+    thumbnails?: { default?: { url: string } };
+  };
+}
+
+interface YouTubeChannelItem {
+  contentDetails?: {
+    relatedPlaylists?: { uploads?: string };
+  };
+}
+
+interface YouTubePlaylistItem {
+  snippet: {
+    resourceId: { videoId: string };
+    title: string;
+    thumbnails?: {
+      medium?: { url: string };
+      default?: { url: string };
+    };
+    publishedAt: string;
+  };
+}
+
 export async function fetchSubscriptions(accessToken: string): Promise<YouTubeChannel[]> {
   const channels: YouTubeChannel[] = [];
   let pageToken = '';
@@ -23,7 +56,7 @@ export async function fetchSubscriptions(accessToken: string): Promise<YouTubeCh
     const params = new URLSearchParams({
       part: 'snippet',
       mine: 'true',
-      maxResults: '50',
+      maxResults: String(MAX_SUBSCRIPTIONS_PER_PAGE),
       ...(pageToken ? { pageToken } : {}),
     });
 
@@ -35,7 +68,7 @@ export async function fetchSubscriptions(accessToken: string): Promise<YouTubeCh
       throw new Error(`YouTube API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: YouTubeApiResponse = await response.json();
 
     for (const item of data.items ?? []) {
       channels.push({
@@ -55,9 +88,8 @@ export async function fetchSubscriptions(accessToken: string): Promise<YouTubeCh
 export async function fetchChannelVideos(
   accessToken: string,
   channelId: string,
-  maxResults = 20,
+  maxResults = DEFAULT_VIDEO_COUNT,
 ): Promise<YouTubeVideo[]> {
-  // Get uploads playlist ID
   const channelParams = new URLSearchParams({
     part: 'contentDetails',
     id: channelId,
@@ -69,12 +101,11 @@ export async function fetchChannelVideos(
 
   if (!channelRes.ok) throw new Error(`YouTube API error: ${channelRes.status}`);
 
-  const channelData = await channelRes.json();
+  const channelData: { items?: YouTubeChannelItem[] } = await channelRes.json();
   const uploadsPlaylistId = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
 
   if (!uploadsPlaylistId) return [];
 
-  // Get videos from uploads playlist
   const playlistParams = new URLSearchParams({
     part: 'snippet',
     playlistId: uploadsPlaylistId,
@@ -87,19 +118,13 @@ export async function fetchChannelVideos(
 
   if (!playlistRes.ok) throw new Error(`YouTube API error: ${playlistRes.status}`);
 
-  const playlistData = await playlistRes.json();
+  const playlistData: { items?: YouTubePlaylistItem[] } = await playlistRes.json();
 
-  return (playlistData.items ?? []).map((item: Record<string, unknown>) => {
-    const snippet = item.snippet as Record<string, unknown>;
-    const resourceId = snippet.resourceId as Record<string, string>;
-    const thumbnails = snippet.thumbnails as Record<string, { url: string }>;
-
-    return {
-      id: resourceId.videoId,
-      title: snippet.title as string,
-      thumbnail: thumbnails?.medium?.url ?? thumbnails?.default?.url ?? '',
-      duration: '',
-      publishedAt: snippet.publishedAt as string,
-    };
-  });
+  return (playlistData.items ?? []).map((item) => ({
+    id: item.snippet.resourceId.videoId,
+    title: item.snippet.title,
+    thumbnail: item.snippet.thumbnails?.medium?.url ?? item.snippet.thumbnails?.default?.url ?? '',
+    duration: '',
+    publishedAt: item.snippet.publishedAt,
+  }));
 }

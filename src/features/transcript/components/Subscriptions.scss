@@ -85,7 +85,7 @@
     object-fit: cover;
 
     &--placeholder {
-      background: linear-gradient(135deg, $color-accent, #a855f7);
+      background: linear-gradient(135deg, $color-accent, $color-purple);
     }
   }
 
@@ -163,6 +163,3 @@
   }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}

@@ -8,7 +8,7 @@
   font-family: $font-body;
   font-weight: 500;
   border-radius: $radius-md;
-  transition: all $duration-fast ease;
+  transition: background $duration-fast ease, color $duration-fast ease, border-color $duration-fast ease, transform $duration-fast ease, box-shadow $duration-fast ease;
   white-space: nowrap;
 
   &__icon {

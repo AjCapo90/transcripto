@@ -116,16 +116,13 @@ export function Subscriptions({ isVisible, accessToken, channels, isLoading }: S
                       <motion.a
                         key={video.id}
                         className="video-card"
-                        href={`#demo`}
+                        href="#demo"
                         onClick={() => {
-                          const input = document.querySelector('.demo__input') as HTMLInputElement | null;
-                          if (input) {
-                            const nativeSetter = Object.getOwnPropertyDescriptor(
-                              HTMLInputElement.prototype, 'value',
-                            )?.set;
-                            nativeSetter?.call(input, `https://www.youtube.com/watch?v=${video.id}`);
-                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                          }
+                          window.dispatchEvent(
+                            new CustomEvent('transcripto:select-video', {
+                              detail: { videoId: video.id },
+                            }),
+                          );
                         }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

@@ -5,7 +5,7 @@
 - SCSS (7-1 architecture, BEM naming, NO Tailwind)
 - Motion (framer-motion) per animazioni
 - Google OAuth 2.0 per YouTube subscriptions
-- Vercel Serverless Functions — Python (youtube-transcript-api + httpx)
+- Vercel Serverless Functions — Python (youtube-transcript-api + ScraperAPI proxy)
 
 ## URLs
 
@@ -53,7 +53,7 @@ Vercel
 │
 └── Serverless Function (api/transcript.py — Python)
     ├── POST /api/transcript
-    ├── youtube-transcript-api (captions con fallback)
+    ├── youtube-transcript-api via ScraperAPI proxy (bypassa IP cloud)
     ├── oEmbed (metadata video: titolo, canale)
     └── Risposta: { video_id, title, channel, lines[], ... }
 ```

@@ -28,6 +28,15 @@ from youtube_transcript_api.proxies import GenericProxyConfig
 
 SCRAPER_API_KEY = os.environ.get("SCRAPER_API_KEY", "")
 SCRAPER_PROXY = f"http://scraperapi:{SCRAPER_API_KEY}@proxy-server.scraperapi.com:8001"
+PREFERRED_LANGUAGES = ["en", "it"]
+
+USER_ERROR_MESSAGES = {
+    "IpBlocked": "YouTube is temporarily limiting requests. Please try again in a few minutes.",
+    "RequestBlocked": "YouTube is temporarily limiting requests. Please try again in a few minutes.",
+    "NoTranscriptFound": "No transcript is available for this video.",
+    "TranscriptsDisabled": "Transcripts are disabled for this video.",
+    "NoTranscriptAvailable": "No transcript is available for this video.",
+}
 
 
 def _extract_video_id(url: str) -> str | None:
@@ -71,8 +80,7 @@ def _get_transcript(video_id: str) -> dict:
     else:
         api = YouTubeTranscriptApi()
 
-    # Fetch transcript
-    result = api.fetch(video_id, languages=["en", "it"])
+    result = api.fetch(video_id, languages=PREFERRED_LANGUAGES)
 
     lines = []
     total_seconds = 0.0
@@ -144,11 +152,20 @@ class handler(BaseHTTPRequestHandler):
             result = _get_transcript(video_id)
             return _json_response(self, 200, result)
         except Exception as e:
-            msg = str(e)
-            if "IpBlocked" in msg or "RequestBlocked" in msg or "429" in msg:
-                status = 429
-            elif "not found" in msg or "No transcript" in msg or "disabled" in msg:
-                status = 404
-            else:
-                status = 500
-            return _json_response(self, status, {"detail": msg})
+            error_type = type(e).__name__
+            raw_msg = str(e)
+
+            # Map to user-friendly messages
+            for key, friendly_msg in USER_ERROR_MESSAGES.items():
+                if key in error_type or key in raw_msg:
+                    status = 429 if "Blocked" in key else 404
+                    return _json_response(self, status, {"detail": friendly_msg})
+
+            if "429" in raw_msg:
+                return _json_response(self, 429, {
+                    "detail": "YouTube is temporarily limiting requests. Please try again in a few minutes.",
+                })
+
+            return _json_response(self, 500, {
+                "detail": "Failed to extract transcript. Please check the URL and try again.",
+            })

@@ -37,10 +37,12 @@
   &__logo-icon { color: $color-accent; }
 
   &__links {
-    display: flex;
+    display: none;
     gap: space(8);
 
-    @media (max-width: 768px) { display: none; }
+    @include respond-to('md') {
+      display: flex;
+    }
 
     a {
       font-size: 0.875rem;
