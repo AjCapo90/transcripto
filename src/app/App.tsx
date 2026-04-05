@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Nav } from '../components/layouts/Nav';
 import { Footer } from '../components/layouts/Footer';
 import { Hero } from '../features/transcript/components/Hero';
-import { Features } from '../features/transcript/components/Features';
-import { Steps } from '../features/transcript/components/Steps';
-import { Demo } from '../features/transcript/components/Demo';
-import { Subscriptions } from '../features/transcript/components/Subscriptions';
 import { initGoogleAuth, requestAccessToken, revokeToken } from '../lib/google-auth';
 import { fetchSubscriptions } from '../lib/youtube-api';
 import type { YouTubeChannel } from '../lib/youtube-api';
+
+const Features = lazy(() => import('../features/transcript/components/Features').then(m => ({ default: m.Features })));
+const Steps = lazy(() => import('../features/transcript/components/Steps').then(m => ({ default: m.Steps })));
+const Demo = lazy(() => import('../features/transcript/components/Demo').then(m => ({ default: m.Demo })));
+const Subscriptions = lazy(() => import('../features/transcript/components/Subscriptions').then(m => ({ default: m.Subscriptions })));
 
 const TOKEN_KEY = 'transcripto_access_token';
 
@@ -82,15 +83,17 @@ export function App() {
       <Nav isLoggedIn={isLoggedIn} onAuthToggle={handleAuthToggle} />
       <main>
         <Hero />
-        <Features />
-        <Steps />
-        <Demo />
-        <Subscriptions
-          isVisible={isLoggedIn}
-          accessToken={accessToken}
-          channels={channels}
-          isLoading={subsLoading}
-        />
+        <Suspense>
+          <Features />
+          <Steps />
+          <Demo />
+          <Subscriptions
+            isVisible={isLoggedIn}
+            accessToken={accessToken}
+            channels={channels}
+            isLoading={subsLoading}
+          />
+        </Suspense>
       </main>
       <Footer />
     </>

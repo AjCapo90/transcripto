@@ -82,6 +82,7 @@ export function Demo() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [, setBatchStatus] = useState<DemoStatus>('idle');
   const processingRef = useRef(false);
+  const shouldProcessRef = useRef(false);
 
   const queueCount = queue.length;
   const canAdd = queueCount < MAX_BATCH;
@@ -157,8 +158,15 @@ export function Demo() {
       addToQueue(inputUrl.trim());
       setInputUrl('');
     }
-    setTimeout(() => processQueue(), 100);
-  }, [inputUrl, addToQueue, processQueue]);
+    shouldProcessRef.current = true;
+  }, [inputUrl, addToQueue]);
+
+  useEffect(() => {
+    if (shouldProcessRef.current && queue.some((q) => q.status === 'pending')) {
+      shouldProcessRef.current = false;
+      processQueue();
+    }
+  }, [queue, processQueue]);
 
   const pendingCount = queue.filter((q) => q.status === 'pending').length;
   const completedCount = queue.filter((q) => q.status === 'success' || q.status === 'error').length;
@@ -177,16 +185,18 @@ export function Demo() {
           transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="demo__input-container">
-            <PlayIcon size={20} />
-            <input
-              type="url"
-              className="demo__input"
-              placeholder={pendingCount > 0 ? 'Add another URL (Shift+Enter)...' : 'https://www.youtube.com/watch?v=...'}
-              aria-label="YouTube video URL"
-              value={inputUrl}
-              onChange={(e) => setInputUrl(e.target.value)}
-              onKeyDown={handleUrlKeyDown}
-            />
+            <div className="demo__input-row">
+              <PlayIcon size={20} />
+              <input
+                type="url"
+                className="demo__input"
+                placeholder={pendingCount > 0 ? 'Add another URL...' : 'https://www.youtube.com/watch?v=...'}
+                aria-label="YouTube video URL"
+                value={inputUrl}
+                onChange={(e) => setInputUrl(e.target.value)}
+                onKeyDown={handleUrlKeyDown}
+              />
+            </div>
             <div className="demo__input-actions">
               {canAdd && (
                 <Button

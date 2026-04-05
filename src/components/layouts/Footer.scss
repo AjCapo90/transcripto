@@ -1,7 +1,7 @@
 @use '../../scss/abstracts' as *;
 
 .footer {
-  padding: space(12) space(6);
+  padding: space(10) space(6);
   border-top: 1px solid var(--color-border);
 
   &__inner {
@@ -10,8 +10,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
     gap: space(4);
+  }
+
+  &__top {
+    display: flex;
+    flex-direction: column;
+    gap: space(1);
   }
 
   &__brand {
@@ -20,28 +25,21 @@
     gap: space(2);
     font-family: $font-heading;
     font-weight: 700;
+    font-size: 1rem;
     color: var(--color-text-secondary);
   }
 
   &__credit {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--color-text-muted);
-
-    a {
-      color: var(--color-text-secondary);
-      transition: color $duration-fast ease;
-
-      @include on-hover { color: $color-accent-light; }
-    }
   }
 
   &__links {
     display: flex;
-    gap: space(6);
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
+    gap: space(4);
 
     a {
+      color: var(--color-text-muted);
       transition: color $duration-fast ease;
 
       @include on-hover { color: var(--color-text-primary); }

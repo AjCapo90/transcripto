@@ -8,7 +8,11 @@
   justify-content: center;
   text-align: center;
   overflow: hidden;
-  padding: space(32) space(6) space(16);
+  padding: space(20) space(6) space(24);
+
+  @include respond-to('md') {
+    padding: space(32) space(6) space(16);
+  }
 
   &__bg {
     position: absolute;
