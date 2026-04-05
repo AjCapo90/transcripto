@@ -5,7 +5,7 @@
 - SCSS (7-1 architecture, BEM naming, NO Tailwind)
 - Motion (framer-motion) per animazioni
 - Google OAuth 2.0 per YouTube subscriptions
-- Vercel Serverless Functions (backend API)
+- Vercel Serverless Functions — Python (youtube-transcript-api + httpx)
 
 ## URLs
 
@@ -40,7 +40,8 @@ VITE_GOOGLE_CLIENT_ID=885996383441-p11cctpoiocpqutbvf77igjbchiiojri.apps.googleu
 - Tutto su **Vercel** (frontend + API serverless), monorepo
 - Auto-deploy su push a `main`
 - Build: `tsc -b && vite build`
-- Serverless function: `api/transcript.ts`
+- Serverless function: `api/transcript.py` (Python runtime)
+- Dipendenze Python: `requirements.txt` nella root
 
 ## Architettura
 
@@ -50,9 +51,10 @@ Vercel
 │   ├── Google OAuth (client-side)
 │   └── YouTube Data API v3 (subscriptions, video list)
 │
-└── Serverless Function (api/transcript.ts)
+└── Serverless Function (api/transcript.py — Python)
     ├── POST /api/transcript
-    ├── YouTube InnerTube API (player data + captions)
+    ├── youtube-transcript-api (captions con fallback)
+    ├── oEmbed (metadata video: titolo, canale)
     └── Risposta: { video_id, title, channel, lines[], ... }
 ```
 
