@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { PlayIcon, CopyIcon, DownloadIcon, SearchIcon } from '../../../components/ui/Icons';
 import './Demo.scss';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = '';
 const MAX_BATCH = 5;
 
 interface TranscriptLine {
