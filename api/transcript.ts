@@ -97,12 +97,25 @@ async function fetchWatchPage(videoId: string): Promise<string> {
 }
 
 function extractPlayerResponse(html: string): Record<string, unknown> | null {
-  const pattern = /var ytInitialPlayerResponse\s*=\s*(\{.+?\});/s;
-  const match = html.match(pattern);
-  if (!match) return null;
+  const marker = 'var ytInitialPlayerResponse = ';
+  const start = html.indexOf(marker);
+  if (start === -1) return null;
+
+  const jsonStart = start + marker.length;
+  let depth = 0;
+  let end = jsonStart;
+
+  for (let i = jsonStart; i < html.length; i++) {
+    if (html[i] === '{') depth++;
+    else if (html[i] === '}') depth--;
+    if (depth === 0) {
+      end = i + 1;
+      break;
+    }
+  }
 
   try {
-    return JSON.parse(match[1]);
+    return JSON.parse(html.slice(jsonStart, end));
   } catch {
     return null;
   }
