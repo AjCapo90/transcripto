@@ -63,6 +63,39 @@ function parseTimedText(xml: string): TimedTextLine[] {
   return lines;
 }
 
+const WATCH_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+  Accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-Dest': 'document',
+  Cookie: 'CONSENT=PENDING+987; SOCS=CAESEwgDEgk2ODE4MTAyNjQaAmVuIAEaBgiA_LyaBg',
+};
+
+const MAX_RETRIES = 2;
+
+async function fetchWatchPage(videoId: string): Promise<string> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
+      headers: WATCH_HEADERS,
+    });
+
+    if (res.ok) return res.text();
+
+    if (res.status === 429 && attempt < MAX_RETRIES) {
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      continue;
+    }
+
+    throw new Error(`YouTube returned ${res.status}`);
+  }
+
+  throw new Error('Failed to fetch YouTube page after retries');
+}
+
 function extractPlayerResponse(html: string): Record<string, unknown> | null {
   const pattern = /var ytInitialPlayerResponse\s*=\s*(\{.+?\});/s;
   const match = html.match(pattern);
@@ -94,20 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Fetch the YouTube watch page to extract player data
-    const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
-        'Accept-Language': 'en',
-      },
-    });
-
-    if (!watchRes.ok) {
-      throw new Error(`YouTube returned ${watchRes.status}`);
-    }
-
-    const html = await watchRes.text();
+    const html = await fetchWatchPage(videoId);
     const playerData = extractPlayerResponse(html) as Record<string, unknown> | null;
 
     if (!playerData) {
