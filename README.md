@@ -1,73 +1,115 @@
-# React + TypeScript + Vite
+# Transcripto
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Extract clean, searchable transcripts from any YouTube video.**
 
-Currently, two official plugins are available:
+A modern web app with dark-themed UI, Google OAuth integration, and batch processing support.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+[Live Demo](https://transcripto-theta.vercel.app)
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- **Instant transcript extraction** — Paste a YouTube URL, get a formatted transcript with timestamps
+- **Batch processing** — Queue up to 5 videos and extract them all at once
+- **In-transcript search** — Real-time search with highlighted matches and keyboard navigation
+- **YouTube integration** — Sign in with Google to browse your subscriptions and pick videos directly
+- **Copy & download** — One-click copy to clipboard or export as `.txt`
+- **Responsive design** — Works on desktop and mobile
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Layer | Technology |
+|-------|-----------|
+| Framework | React 19 |
+| Language | TypeScript |
+| Build | Vite 8 |
+| Styling | SCSS (7-1 architecture, BEM) |
+| Animations | Motion (Framer Motion) |
+| Auth | Google OAuth 2.0 |
+| API | YouTube Data API v3 |
+| Backend | FastAPI (Python) |
+| Hosting | Vercel (frontend) + Render (backend) |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Architecture
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+Browser                          Backend (FastAPI)
+React + TypeScript + SCSS        Python + youtube-transcript-api
+       |                                |
+       |  POST /api/transcript          |
+       |------------------------------->|
+       |                                |--- youtube-transcript-api
+       |  { title, lines[], ... }       |
+       |<-------------------------------|
+       |
+       |  Google OAuth (client-side)
+       |--- YouTube Data API v3
+            (subscriptions, videos)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Design
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Dark theme with electric indigo accent (`#6366f1`)
+- Aurora-style animated gradient orbs
+- Glassmorphism effects with backdrop blur
+- Fluid typography with `clamp()`
+- Plus Jakarta Sans + Inter font pairing
+- 4px spacing grid system
+- Scroll-triggered reveal animations
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- A running instance of the [backend API](https://github.com/AjCapo90/youtube-transcript)
+
+### Setup
+
+```bash
+git clone https://github.com/AjCapo90/transcripto.git
+cd transcripto
+npm install
 ```
+
+Create a `.env` file:
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+```
+
+### Development
+
+```bash
+npm run dev
+```
+
+### Build
+
+```bash
+npm run build
+```
+
+## Project Structure
+
+```
+src/
+├── app/                  # App root component
+├── components/
+│   ├── layouts/          # Nav, Footer
+│   └── ui/               # Button, Icons, SectionHeader
+├── features/
+│   └── transcript/       # Hero, Features, Steps, Demo, Subscriptions
+├── hooks/                # useScrollReveal, useScrolled
+├── lib/                  # Google Auth, YouTube API helpers
+├── scss/
+│   ├── abstracts/        # Variables, mixins, functions
+│   └── base/             # Reset, typography
+└── types/                # Type declarations
+```
+
+## Author
+
+**Alessandro Capozzi** — [GitHub](https://github.com/AjCapo90) · [LinkedIn](https://www.linkedin.com/in/ajcapo90)
