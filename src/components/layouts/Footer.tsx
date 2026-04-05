@@ -18,7 +18,7 @@ export function Footer() {
           <a href="https://github.com/AjCapo90" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
             <GitHubIcon size={20} />
           </a>
-          <a href="https://www.linkedin.com/in/alessandro-capozzi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+          <a href="https://www.linkedin.com/in/ajcapo90" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
             <LinkedInIcon size={20} />
           </a>
         </nav>

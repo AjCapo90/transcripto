@@ -18,7 +18,7 @@ export function Hero() {
           className="hero__badge"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         >
           YouTube Transcript Extractor
         </motion.p>
@@ -27,7 +27,7 @@ export function Hero() {
           className="hero__title"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
         >
           Every word.<br />
           <span className="hero__title--accent">Extracted.</span>
@@ -35,9 +35,9 @@ export function Hero() {
 
         <motion.p
           className="hero__subtitle"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
           Paste a YouTube link, connect your account, or browse your subscriptions.
           Get clean, searchable transcripts in seconds.
@@ -45,9 +45,9 @@ export function Hero() {
 
         <motion.div
           className="hero__actions"
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
           <a href="#demo">
             <Button variant="primary" size="lg" icon={<ArrowRightIcon size={20} />}>
@@ -64,7 +64,7 @@ export function Hero() {
         className="hero__scroll-indicator"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 1.2 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
       >
         <span>Scroll</span>
         <div className="hero__scroll-line" />
